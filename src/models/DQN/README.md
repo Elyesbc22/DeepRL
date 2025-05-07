@@ -27,7 +27,8 @@ python train.py --env CartPole-v1 --total_timesteps 100000
 You can customize the training process with various command-line arguments:
 
 ```bash
-python train.py --env CartPole-v1 --total_timesteps 100000 --batch_size 64 --buffer_size 10000 --learning_rate 1e-3 --gamma 0.99 --epsilon_start 1.0 --epsilon_end 0.01 --epsilon_decay 0.995 --target_update_freq 10 --eval_freq 1000 --eval_episodes 10 --hidden_dim 128 --log_dir logs --save_dir saved_models
+python train.py --env CartPole-v1 --total_timesteps 100000 --batch_size 64 --buffer_size 10000 --learning_rate 1e-3 --gamma 0.99 --epsilon_start 1.0 --epsilon_end 0.01 --epsilon_decay 0.995 --epsilon_decay_type exponential --target_update_freq 10 --eval_freq 1000 --eval_episodes 10 --hidden_dim 128 --log_dir logs --save_dir saved_models
+python train.py --env MountainCarContinuous-v0 --total_timesteps 100000 --epsilon_decay_type linear --batch_size 64 --buffer_size 50000 --learning_rate 3e-4 --gamma 0.99 --epsilon_start 1.0 --epsilon_end 0.01 --epsilon_decay 0.9999 --target_update_freq 1000 --eval_freq 1000 --eval_episodes 10 --hidden_dim 128 --log_dir logs --save_dir saved_models
 ```
 
 Alternatively, you can specify a configuration file:
@@ -53,7 +54,13 @@ This script will:
 You can use the same command-line arguments as with the `train.py` script to customize the training process:
 
 ```bash
-python run_all_envs.py --total_timesteps 100000 --batch_size 64 --buffer_size 10000 --learning_rate 1e-3 --gamma 0.99 --epsilon_start 1.0 --epsilon_end 0.01 --epsilon_decay 0.995 --target_update_freq 10 --eval_freq 1000 --eval_episodes 10 --hidden_dim 128 --log_dir logs --save_dir saved_models
+python run_all_envs.py --total_timesteps 100000 --batch_size 64 --buffer_size 10000 --learning_rate 1e-3 --gamma 0.99 --epsilon_start 1.0 --epsilon_end 0.01 --epsilon_decay 0.995 --epsilon_decay_type exponential --target_update_freq 10 --eval_freq 1000 --eval_episodes 10 --hidden_dim 128 --log_dir logs --save_dir saved_models
+```
+
+You can also use linear epsilon decay instead of exponential:
+
+```bash
+python run_all_envs.py --total_timesteps 100000 --batch_size 64 --buffer_size 10000 --learning_rate 1e-3 --gamma 0.99 --epsilon_start 1.0 --epsilon_end 0.01 --epsilon_decay_type linear --target_update_freq 10 --eval_freq 1000 --eval_episodes 10 --hidden_dim 128 --log_dir logs --save_dir saved_models
 ```
 
 The script will generate two additional visualizations:
@@ -95,6 +102,7 @@ To perform a hyperparameter search for the DQN agent:
 
 ```bash
 python hyperparam_search.py --env CartPole-v1 --search_type grid
+python hyperparam_search.py --env MountainCarContinuous-v0 --search_type evolutionary
 ```
 
 You can customize the hyperparameter search with various command-line arguments:
@@ -144,6 +152,7 @@ The hyperparameter search will try different combinations of:
 - Learning rate
 - Discount factor (gamma)
 - Exploration rate decay
+- Exploration rate decay type (exponential or linear)
 - Hidden layer dimensions
 - Batch size
 - Replay buffer size
@@ -173,7 +182,9 @@ The DQN algorithm combines Q-learning with deep neural networks to learn policie
 
 1. **Experience Replay**: Stores transitions in a replay buffer and samples random batches for training, breaking correlations in the observation sequence.
 2. **Target Network**: Uses a separate target network for generating TD targets, updated periodically to stabilize training.
-3. **Epsilon-Greedy Exploration**: Balances exploration and exploitation by selecting random actions with probability epsilon.
+3. **Epsilon-Greedy Exploration**: Balances exploration and exploitation by selecting random actions with probability epsilon. Two types of epsilon decay are supported:
+   - **Exponential Decay**: Multiplies epsilon by a decay factor at each step (epsilon = epsilon * decay_factor)
+   - **Linear Decay**: Linearly decreases epsilon from start to end value over a large portion (90%) of the total training steps
 
 ### Handling Continuous Action Spaces
 
@@ -204,6 +215,44 @@ The Q-network consists of:
    - Update the Q-network to minimize the loss between current and target Q-values
    - Periodically update the target network
    - Decay epsilon
+
+### Best Hyperparameters Management
+
+This implementation includes a mechanism to store and update the best hyperparameters for each environment:
+
+1. **Storage**: The best hyperparameters for each environment are stored in a JSON file (`best_hyperparams.json`) in the DQN directory.
+2. **Automatic Usage**: When training a new agent, the system automatically checks if there are best hyperparameters available for the target environment. If available, these hyperparameters are used instead of the default ones or those provided via command-line arguments.
+3. **Continuous Improvement**: During training, whenever the agent is evaluated (both during periodic evaluations and at the end of training), the current hyperparameters are compared with the stored best hyperparameters. If the current evaluation results are better, the stored hyperparameters are updated.
+
+This approach ensures that:
+- Each environment uses the most effective hyperparameters discovered so far
+- The hyperparameters continuously improve as better configurations are found
+- New training runs benefit from previous discoveries without manual intervention
+
+To see the current best hyperparameters for an environment, you can examine the `best_hyperparams.json` file. The file structure is:
+
+```json
+{
+  "CartPole-v1": {
+    "hidden_dim": 128,
+    "learning_rate": 0.001,
+    "gamma": 0.99,
+    "epsilon_start": 1.0,
+    "epsilon_end": 0.01,
+    "epsilon_decay": 0.995,
+    "epsilon_decay_type": "exponential",
+    "buffer_size": 10000,
+    "batch_size": 64,
+    "target_update_freq": 10,
+    "eval_reward": 500.0
+  },
+  "MountainCar-v0": {
+    ...
+  }
+}
+```
+
+Each environment entry includes all the hyperparameters and the evaluation reward achieved with those hyperparameters.
 
 ## References
 
