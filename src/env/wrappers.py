@@ -18,7 +18,7 @@ class DiscretizedActionWrapper(Environment):
     ):
         """
         Initialize the wrapper.
-        
+
         Args:
             env_name: Name of the environment
             num_bins: Number of bins to discretize each action dimension
@@ -26,33 +26,33 @@ class DiscretizedActionWrapper(Environment):
             render_mode: Mode for rendering
         """
         super().__init__(env_name, seed, render_mode)
-        
+
         # Only apply discretization if the action space is continuous
         if self.is_continuous:
             self.num_bins = num_bins
             self.action_low = self.action_space.low
             self.action_high = self.action_space.high
-            
+
             # Create a discrete action space
             self.discrete_action_dim = num_bins ** self.action_space.shape[0]
             self.discrete_action_space = gym.spaces.Discrete(self.discrete_action_dim)
-            
+
             # Store original action space
             self.original_action_space = self.action_space
-            
+
             # Override action space
             self.action_space = self.discrete_action_space
-            
+
             # Update is_continuous flag
             self.is_continuous = False
-    
+
     def step(self, action: int) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
         """
         Take a step in the environment with a discretized action.
-        
+
         Args:
             action: Discrete action index
-            
+
         Returns:
             observation: Next observation
             reward: Reward received
@@ -67,30 +67,84 @@ class DiscretizedActionWrapper(Environment):
         else:
             # If not continuous, just pass through
             return super().step(action)
-    
+
     def _discrete_to_continuous(self, discrete_action: int) -> np.ndarray:
         """
         Convert a discrete action index to a continuous action vector.
-        
+
         Args:
             discrete_action: Index of the discrete action
-            
+
         Returns:
             Continuous action vector
         """
         # Convert discrete action index to multi-dimensional indices
         action_dim = self.original_action_space.shape[0]
         indices = []
-        
+
         temp = discrete_action
         for _ in range(action_dim):
             indices.append(temp % self.num_bins)
             temp = temp // self.num_bins
-        
+
         # Convert indices to continuous values
         continuous_action = np.zeros(action_dim)
         for i in range(action_dim):
             bin_size = (self.action_high[i] - self.action_low[i]) / self.num_bins
             continuous_action[i] = self.action_low[i] + (indices[i] + 0.5) * bin_size
-        
+
         return continuous_action
+
+class RewardModifierWrapper(Environment):
+    """
+    Wrapper for environments to modify the reward function.
+    This allows adding a velocity component to the reward to encourage specific behaviors.
+    """
+    def __init__(
+        self, 
+        env_name: str, 
+        velocity_coefficient: float = 0.2,
+        seed: Optional[int] = None,
+        render_mode: Optional[str] = None
+    ):
+        """
+        Initialize the wrapper.
+
+        Args:
+            env_name: Name of the environment
+            velocity_coefficient: Coefficient to scale the velocity component added to the reward
+            seed: Random seed for reproducibility
+            render_mode: Mode for rendering
+        """
+        super().__init__(env_name, seed, render_mode)
+        self.velocity_coefficient = velocity_coefficient
+
+    def step(self, action: Union[int, np.ndarray]) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
+        """
+        Take a step in the environment and modify the reward.
+
+        Args:
+            action: Action to take in the environment
+
+        Returns:
+            observation: Next observation
+            reward: Modified reward (original reward + velocity * coefficient)
+            terminated: Whether the episode has terminated
+            truncated: Whether the episode was truncated
+            info: Additional information
+        """
+        # Handle discretized actions for continuous environments
+        if hasattr(self, '_discrete_to_continuous') and isinstance(action, int):
+            # Convert discrete action to continuous
+            action = self._discrete_to_continuous(action)
+
+        observation, reward, terminated, truncated, info = super().step(action)
+
+        # For MountainCar and MountainCarContinuous, velocity is the second component of the observation
+        # For other environments, this might need to be adjusted
+        if 'MountainCar' in self.env_name and len(observation) > 1:
+            velocity = observation[1]
+            modified_reward = reward + velocity * self.velocity_coefficient
+            return observation, modified_reward, terminated, truncated, info
+
+        return observation, reward, terminated, truncated, info

@@ -28,7 +28,7 @@ You can customize the training process with various command-line arguments:
 
 ```bash
 python train.py --env CartPole-v1 --total_timesteps 100000 --batch_size 64 --buffer_size 10000 --learning_rate 1e-3 --gamma 0.99 --epsilon_start 1.0 --epsilon_end 0.01 --epsilon_decay 0.995 --epsilon_decay_type exponential --target_update_freq 10 --eval_freq 1000 --eval_episodes 10 --hidden_dim 128 --log_dir logs --save_dir saved_models
-python train.py --env MountainCarContinuous-v0 --total_timesteps 100000 --epsilon_decay_type linear --batch_size 64 --buffer_size 50000 --learning_rate 3e-4 --gamma 0.99 --epsilon_start 1.0 --epsilon_end 0.01 --epsilon_decay 0.9999 --target_update_freq 1000 --eval_freq 1000 --eval_episodes 10 --hidden_dim 128 --log_dir logs --save_dir saved_models
+python train.py --env MountainCarContinuous-v0 --reward_shaping --total_timesteps 300000 --epsilon_decay_type linear --batch_size 64 --buffer_size 50000 --learning_rate 1e-4 --gamma 0.99 --epsilon_start 1.0 --epsilon_end 0.01 --epsilon_decay 0.9999 --target_update_freq 1000 --eval_freq 1000 --eval_episodes 10 --hidden_dim 256 --log_dir logs --save_dir saved_models
 ```
 
 Alternatively, you can specify a configuration file:

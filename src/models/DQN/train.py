@@ -12,7 +12,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from src.env.environment import Environment
-from src.env.wrappers import DiscretizedActionWrapper
+from src.env.wrappers import DiscretizedActionWrapper, RewardModifierWrapper
 from src.env.utils import set_global_seeds
 from dqn import DQNAgent
 from best_hyperparams import update_best_hyperparams
@@ -57,6 +57,10 @@ def parse_args():
                         help="Directory for saving models")
     parser.add_argument("--config", type=str, default=None, 
                         help="Path to config file")
+    parser.add_argument("--reward_shaping", action="store_true", 
+                        help="Enable reward shaping with velocity component")
+    parser.add_argument("--velocity_coefficient", type=float, default=2,
+                        help="Coefficient for velocity in reward shaping")
 
     return parser.parse_args()
 
@@ -145,12 +149,51 @@ def train(args: argparse.Namespace):
     # Check if the environment has a continuous action space using the is_continuous property
     if temp_env.is_continuous:
         # Use DiscretizedActionWrapper for continuous environments
-        env = DiscretizedActionWrapper(args.env, seed=args.seed)
-        eval_env = DiscretizedActionWrapper(args.env, num_bins=5, seed=args.seed + 100)
+        base_env = DiscretizedActionWrapper(args.env, seed=args.seed)
+        base_eval_env = DiscretizedActionWrapper(args.env, num_bins=5, seed=args.seed + 100)
     else:
         # Use regular Environment for discrete environments
-        env = temp_env
-        eval_env = Environment(args.env, seed=args.seed + 100)
+        base_env = temp_env
+        base_eval_env = Environment(args.env, seed=args.seed + 100)
+
+    # Apply reward shaping if enabled
+    if args.reward_shaping:
+        # For training environment
+        if 'MountainCar' in args.env:
+            print(f"Applying reward shaping with velocity coefficient: {args.velocity_coefficient}")
+            env = RewardModifierWrapper(
+                args.env, 
+                velocity_coefficient=args.velocity_coefficient,
+                seed=args.seed
+            )
+            # If using discretized wrapper, we need to maintain the discretized action space
+            if temp_env.is_continuous:
+                env.action_space = base_env.action_space
+                env.is_continuous = base_env.is_continuous
+                if hasattr(base_env, 'original_action_space'):
+                    env.original_action_space = base_env.original_action_space
+                    env._discrete_to_continuous = base_env._discrete_to_continuous
+
+            # For evaluation environment
+            eval_env = RewardModifierWrapper(
+                args.env,
+                velocity_coefficient=args.velocity_coefficient,
+                seed=args.seed + 100
+            )
+            # If using discretized wrapper, we need to maintain the discretized action space
+            if temp_env.is_continuous:
+                eval_env.action_space = base_eval_env.action_space
+                eval_env.is_continuous = base_eval_env.is_continuous
+                if hasattr(base_eval_env, 'original_action_space'):
+                    eval_env.original_action_space = base_eval_env.original_action_space
+                    eval_env._discrete_to_continuous = base_eval_env._discrete_to_continuous
+        else:
+            print("Reward shaping is only supported for MountainCar environments. Using base environment.")
+            env = base_env
+            eval_env = base_eval_env
+    else:
+        env = base_env
+        eval_env = base_eval_env
 
     # Create agent
     agent = DQNAgent(
@@ -231,11 +274,12 @@ def train(args: argparse.Namespace):
             # Save agent
             agent.save(os.path.join(args.save_dir, f"dqn_{args.env}_{t}.pt"))
             # Save metrics
+            # Convert numpy values to native Python types for JSON serialization
             metrics = {
-                "rewards": rewards,
-                "eval_rewards": eval_rewards,
-                "losses": losses,
-                "epsilons": epsilons
+                "rewards": [float(r) for r in rewards],
+                "eval_rewards": [float(r) for r in eval_rewards],
+                "losses": [float(l) for l in losses],
+                "epsilons": [float(e) for e in epsilons]
             }
 
             with open(os.path.join(args.log_dir, f"dqn_{args.env}_metrics.json"), "w") as f:
@@ -260,7 +304,9 @@ def train(args: argparse.Namespace):
         "epsilon_decay": agent.epsilon_decay,
         "buffer_size": agent.replay_buffer.buffer.maxlen,
         "batch_size": agent.batch_size,
-        "target_update_freq": agent.target_update_freq
+        "target_update_freq": agent.target_update_freq,
+        "reward_shaping": args.reward_shaping,
+        "velocity_coefficient": args.velocity_coefficient
     }
 
     updated = update_best_hyperparams(args.env, current_hyperparams, eval_reward)
@@ -268,11 +314,12 @@ def train(args: argparse.Namespace):
         print(f"Updated best hyperparameters for {args.env} with final evaluation reward: {eval_reward:.2f}")
 
     # Save final metrics
+    # Convert numpy values to native Python types for JSON serialization
     metrics = {
-        "rewards": rewards,
-        "eval_rewards": eval_rewards,
-        "losses": losses,
-        "epsilons": epsilons
+        "rewards": [float(r) for r in rewards],
+        "eval_rewards": [float(r) for r in eval_rewards],
+        "losses": [float(l) for l in losses],
+        "epsilons": [float(e) for e in epsilons]
     }
 
     with open(os.path.join(args.log_dir, f"dqn_{args.env}_metrics.json"), "w") as f:
