@@ -97,6 +97,30 @@ def evaluate_agent(agent: DQNAgent, env: Environment, num_episodes: int = 10) ->
 
     return np.mean(total_rewards)
 
+def clean_checkpoints(save_dir: str, env_name: str):
+    """
+    Remove old checkpoints for a specific environment.
+
+    Args:
+        save_dir: Directory where checkpoints are saved
+        env_name: Name of the environment
+    """
+    if not os.path.exists(save_dir):
+        return
+
+    # Get all files in the save directory
+    for filename in os.listdir(save_dir):
+        # Check if the file is a checkpoint for the current environment
+        # This includes both intermediate checkpoints (dqn_{env_name}_{step}.pt)
+        # and the final checkpoint (dqn_{env_name}_final.pt)
+        if filename.startswith(f"dqn_{env_name}_") and filename.endswith(".pt"):
+            file_path = os.path.join(save_dir, filename)
+            try:
+                os.remove(file_path)
+                print(f"Removed old checkpoint: {filename}")
+            except Exception as e:
+                print(f"Error removing checkpoint {filename}: {e}")
+
 def train(args: argparse.Namespace):
     """
     Train a DQN agent.
@@ -107,6 +131,9 @@ def train(args: argparse.Namespace):
     # Create directories
     os.makedirs(args.log_dir, exist_ok=True)
     os.makedirs(args.save_dir, exist_ok=True)
+
+    # Clean old checkpoints
+    clean_checkpoints(args.save_dir, args.env)
 
     # Set seeds
     set_global_seeds(args.seed)
