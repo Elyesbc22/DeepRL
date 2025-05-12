@@ -1,7 +1,7 @@
 import gym
 # Option 1 – pull the callable out of the module file directly
-from spinup.algos.pytorch.sac.sac import sac          # <-- the function
-from spinup.algos.pytorch.sac import core             # <-- the core nets
+from spinningup.spinup.algos.pytorch.sac.sac import sac          # <-- the function
+from spinningup.spinup.algos.pytorch.sac import core             # <-- the core nets
 
 
 # --- environment factory ---------------------------------------------------
