@@ -1,12 +1,19 @@
-# DeepRL -> Soft Actor Critic
+# DeepRL → Soft Actor-Critic
 
-Soft Actor-Critic (SAC) is a deep reinforcement learning algorithm that combines off-policy learning with a maximum 
-entropy framework, encouraging exploration while maximizing expected rewards. It is designed to improve learning efficiency and stability compared to traditional methods.
+Soft Actor-Critic (SAC) is a deep reinforcement learning algorithm that blends off-policy learning with a maximum entropy framework. This design promotes both efficient exploration and stable learning by encouraging the agent to act as randomly as possible while still maximizing expected rewards.
 
-
-SAC is a model for continuous action space, it has been discretized onto 2 actions, left or right.
+Although SAC is originally designed for continuous action spaces, in this implementation it has been discretized to handle two actions: **left** or **right**.
 
 ![Alt text](./SAC_CARTPOLE.png "Soft Actor Critic Training on CartPole-v1")
 
-We can see that after ~80 steps, the model always got the maximum amount of reward 500. Which implies that the model has
-correctly learned a solution to the cartpole problem.
+As shown in the plot above, after approximately 80 training epochs, the model consistently achieves the maximum reward of **500**, indicating that it has successfully learned to solve the CartPole-v1 task.
+
+## How to Train and Plot SAC on CartPole-v1
+
+<ol>
+  <li>Install required packages from `requirements.txt`.</li>
+  <li>Install the [Spinning Up](https://spinningup.openai.com/en/latest/user/installation.html) library.</li>
+  <li>run python main.py from the SAC folder</li>
+  <li>Update the data path in plot.py to point to the new training log. The correct path will be displayed at the start of the console output during training.</li>
+  <li>run python plot.py</li>
+</ol>
