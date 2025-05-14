@@ -1,0 +1,45 @@
+{
+    "ac_kwargs":	{
+        "hidden_sizes":	[
+            256,
+            256
+        ]
+    },
+    "actor_critic":	"MLPActorCritic",
+    "alpha":	0.2,
+    "batch_size":	64,
+    "env_fn":	"env_fn",
+    "epochs":	100,
+    "exp_name":	"log_train",
+    "gamma":	0.98,
+    "logger":	{
+        "<spinup.utils.logx.EpochLogger object at 0x732587ab3780>":	{
+            "epoch_dict":	{},
+            "exp_name":	"log_train",
+            "first_row":	true,
+            "log_current_row":	{},
+            "log_headers":	[],
+            "output_dir":	"/home/antoine/spinningup/data/log_train/log_train_s3",
+            "output_file":	{
+                "<_io.TextIOWrapper name='/home/antoine/spinningup/data/log_train/log_train_s3/progress.txt' mode='w' encoding='UTF-8'>":	{
+                    "mode":	"w"
+                }
+            }
+        }
+    },
+    "logger_kwargs":	{
+        "exp_name":	"log_train",
+        "output_dir":	"/home/antoine/spinningup/data/log_train/log_train_s3"
+    },
+    "lr":	0.0002,
+    "max_ep_len":	999,
+    "num_test_episodes":	10,
+    "polyak":	0.995,
+    "replay_size":	1000000,
+    "save_freq":	10,
+    "seed":	3,
+    "start_steps":	10000,
+    "steps_per_epoch":	2000,
+    "update_after":	1000,
+    "update_every":	1
+}
