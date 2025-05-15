@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.distributions import Categorical, Normal
-from typing import Dict, List, Tuple, Union, Optional, Any
+from typing import Dict, Tuple, Union
 
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -85,6 +85,13 @@ class ActorCritic(nn.Module):
         Returns:
             Action probabilities/means and state value
         """
+
+        # Check if dimensions match
+        expected_dim = self.shared[0].weight.shape[1]
+        if state.shape[1] != expected_dim:
+            raise ValueError(f"State dimension mismatch. Expected {expected_dim}, got {state.shape[1]}. "
+                            f"Make sure agent was initialized with correct state_dim.")
+        
         features = self.shared(state)
         
         # Actor (policy)
@@ -107,7 +114,20 @@ class ActorCritic(nn.Module):
             action_log_prob: Log probability of selected action
             state_value: Value of the state
         """
+        
+
         with torch.no_grad():
+            # Make sure state has the right shape [batch_size, state_dim]
+            if len(state.shape) == 1:
+                # If state is 1D, add batch dimension
+                state = state.unsqueeze(0)
+            elif state.shape[0] == self.shared[0].weight.shape[1]:
+                # If state shape matches input dimension but is transposed
+                state = state.unsqueeze(0)
+            elif len(state.shape) == 2 and state.shape[1] == 1:
+                # If state has shape [state_dim, 1]
+                state = state.transpose(0, 1)
+                
             action_logits, state_value = self(state)
             
             if self.continuous:
@@ -118,8 +138,10 @@ class ActorCritic(nn.Module):
                 
                 action = distribution.sample()
                 action_log_prob = distribution.log_prob(action).sum(dim=-1)
-                
-                return action.cpu().numpy(), action_log_prob, state_value
+
+                # NEW  ➜  strip the batch dimension so env.step() sees shape (action_dim,)
+                action_np = action.cpu().numpy().squeeze(0)
+                return action_np, action_log_prob, state_value
             else:
                 # Get categorical distribution
                 action_probs = torch.softmax(action_logits, dim=-1)
@@ -130,7 +152,6 @@ class ActorCritic(nn.Module):
                 action_log_prob = distribution.log_prob(action)
                 
                 return action.item(), action_log_prob, state_value
-    
     def evaluate(
         self, 
         state: torch.Tensor, 
@@ -255,14 +276,29 @@ class PPOBuffer:
             advantages: Batch of advantages
             returns: Batch of returns
         """
+        # Handle potentially inconsistent state shapes
+        try:
+            states_array = np.array(self.states)
+        except ValueError:
+            # If shapes are inconsistent, convert and stack states individually
+            states_array = np.vstack([np.array(s, dtype=np.float32).flatten() for s in self.states])
+        
+        # Handle actions (may be discrete integers or continuous arrays)
+        if self.actions and isinstance(self.actions[0], np.ndarray):
+            try:
+                actions_array = np.array(self.actions)
+            except ValueError:
+                actions_array = np.vstack([np.array(a, dtype=np.float32).flatten() for a in self.actions])
+        else:
+            actions_array = np.array(self.actions)
+        
         return (
-            np.array(self.states),
-            np.array(self.actions),
+            states_array,
+            actions_array,
             np.array(self.log_probs, dtype=np.float32),
             np.array(self.advantages, dtype=np.float32),
             np.array(self.returns, dtype=np.float32)
-        )
-    
+        )    
     def clear(self):
         """Clear the buffer."""
         self.states = []
@@ -322,7 +358,6 @@ class PPOAgent:
         self.max_grad_norm = max_grad_norm
         self.continuous = continuous
         self.device = device
-        
         # Initialize actor-critic network
         self.policy = ActorCritic(
             state_dim, 
@@ -374,6 +409,13 @@ class PPOAgent:
             Dictionary with episode statistics
         """
         state, _ = env.reset()
+
+        # Normalize the state if needed
+        if hasattr(env.observation_space, 'low') and hasattr(env.observation_space, 'high'):
+            state = np.clip(state, env.observation_space.low, env.observation_space.high)
+            
+        state = np.array(state, dtype=np.float32).flatten()
+
         done = False
         episode_reward = 0
         episode_length = 0
@@ -389,6 +431,11 @@ class PPOAgent:
             
             # Take step in environment
             next_state, reward, terminated, truncated, _ = env.step(action)
+            if hasattr(env.observation_space, 'low') and hasattr(env.observation_space, 'high'):
+                next_state = np.clip(next_state, env.observation_space.low, env.observation_space.high)
+            
+            next_state = np.array(next_state, dtype=np.float32).flatten()          
+              
             done = terminated or truncated
             
             # Store experience in buffer

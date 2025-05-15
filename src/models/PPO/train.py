@@ -15,6 +15,11 @@ from env.environment import Environment
 from env.utils import set_global_seeds
 from ppo import PPOAgent
 
+ENV_ALIAS = {
+    "MountainCarContinuous": "MountainCarContinuous-v0",
+    "MountainCar":          "MountainCar-v0",
+}
+
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="Train PPO agent")
@@ -97,36 +102,37 @@ def evaluate_agent(agent: PPOAgent, env: Environment, num_episodes: int = 10) ->
 
     return np.mean(total_rewards)
 
-def train(args: argparse.Namespace):
-    """
-    Train a PPO agent.
-
-    Args:
-        args: Command line arguments
-    """
-    # Create directories
-    os.makedirs(args.log_dir, exist_ok=True)
-    os.makedirs(args.save_dir, exist_ok=True)
-
+def train(args):
     # Set seeds
     set_global_seeds(args.seed)
-
-    # Create a temporary environment to check if it has a continuous action space
-    temp_env = Environment(args.env, seed=args.seed)
-    continuous = temp_env.is_continuous
     
-    # Create environments
-    if continuous:
-        train_env = temp_env  # Use the original continuous environment
-        eval_env = Environment(args.env, seed=args.seed + 100)
-    else:
-        train_env = temp_env
-        eval_env = Environment(args.env, seed=args.seed + 100)
+    args.env = ENV_ALIAS.get(args.env, args.env)
 
-    # Create agent
+    # Create environment
+    train_env = Environment(args.env, seed=args.seed)
+    eval_env = Environment(args.env, seed=args.seed + 100)
+    
+    # Get the correct state dimensions from environment
+    obs, _ = train_env.reset()
+    state_dim = np.asarray(obs, dtype=np.float32).flatten().shape[0]
+    
+    if train_env.is_continuous:
+        action_dim = train_env.action_space.shape[0]
+        continuous = True
+    else:
+        action_dim = train_env.action_space.n
+        continuous = False
+    
+    # Debug information to verify dimensions
+    print(f"Environment: {args.env}")
+    print(f"State dimension: {state_dim}")
+    print(f"Action dimension: {action_dim}")
+    print(f"Continuous: {continuous}")
+
+    # Create agent with correct state_dim
     agent = PPOAgent(
-        state_dim=train_env.state_dim,
-        action_dim=train_env.action_dim,
+        state_dim=state_dim,
+        action_dim=action_dim,
         hidden_dim=args.hidden_dim,
         lr=args.learning_rate,
         gamma=args.gamma,
@@ -137,7 +143,7 @@ def train(args: argparse.Namespace):
         max_grad_norm=args.max_grad_norm,
         continuous=continuous
     )
-
+    
     # Training loop
     rewards = []
     eval_rewards = []
