@@ -12,7 +12,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
 from src.env.environment import Environment
-from src.env.wrappers import DiscretizedActionWrapper, RewardModifierWrapper
+from src.env.wrappers import DiscretizedActionWrapper, RewardVelocityModifierWrapper
 from src.env.utils import set_global_seeds
 from dqn import DQNAgent
 from best_hyperparams import update_best_hyperparams
@@ -161,7 +161,7 @@ def train(args: argparse.Namespace):
         # For training environment
         if 'MountainCar' in args.env:
             print(f"Applying reward shaping with velocity coefficient: {args.velocity_coefficient}")
-            env = RewardModifierWrapper(
+            env = RewardVelocityModifierWrapper(
                 args.env, 
                 velocity_coefficient=args.velocity_coefficient,
                 seed=args.seed
@@ -175,7 +175,7 @@ def train(args: argparse.Namespace):
                     env._discrete_to_continuous = base_env._discrete_to_continuous
 
             # For evaluation environment
-            eval_env = RewardModifierWrapper(
+            eval_env = RewardVelocityModifierWrapper(
                 args.env,
                 velocity_coefficient=args.velocity_coefficient,
                 seed=args.seed + 100
