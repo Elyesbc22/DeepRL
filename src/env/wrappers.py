@@ -2,7 +2,7 @@ import numpy as np
 import gymnasium as gym
 from typing import Optional, Tuple, Dict, Any, Union
 
-from src.env.environment import Environment
+from . import Environment
 
 class DiscretizedActionWrapper(Environment):
     """
@@ -36,7 +36,6 @@ class DiscretizedActionWrapper(Environment):
             # Create a discrete action space
             self.discrete_action_dim = num_bins ** self.action_space.shape[0]
             self.discrete_action_space = gym.spaces.Discrete(self.discrete_action_dim)
-
             # Store original action space
             self.original_action_space = self.action_space
 
