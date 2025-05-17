@@ -80,17 +80,7 @@ def load_config(config_path: str) -> Dict[str, Any]:
     return config
 
 def evaluate_agent(agent: TD3Agent, env: Environment, num_episodes: int = 10) -> float:
-    """
-    Evaluate the agent on the environment.
-
-    Args:
-        agent: TD3 agent to evaluate
-        env: Environment to evaluate on
-        num_episodes: Number of episodes to evaluate for
-
-    Returns:
-        Average reward over the episodes
-    """
+    """Evaluate the agent on the environment."""
     total_rewards = []
 
     for _ in range(num_episodes):
@@ -108,6 +98,12 @@ def evaluate_agent(agent: TD3Agent, env: Environment, num_episodes: int = 10) ->
 
         while not done and episode_steps < 1000:
             action = agent.select_action(state, evaluate=True)
+            
+            # Check if we need to convert for CartPole
+            if env.env_name == 'CartPole-v1' and isinstance(action, np.ndarray):
+                # Convert to scalar action for CartPole
+                action = int(action[0] > 0)  # Threshold at 0: negative → 0, positive → 1
+            
             next_state, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
 
@@ -151,23 +147,46 @@ def train(args):
         print(f"Warning: {args.env} has discrete action space. Using DiscretizedActionWrapper.")
         train_env = DiscretizedActionWrapper(args.env, seed=args.seed)
         eval_env = DiscretizedActionWrapper(args.env, seed=args.seed + 100)
-    
+
     # Get state and action dimensions
     obs, _ = train_env.reset()
-    state_dim = np.array(obs, dtype=np.float32).flatten().shape[0]
-    action_dim = train_env.action_space.shape[0]
-    max_action = float(train_env.action_space.high[0])
     
+    # In the train function, add these debugging lines:
+    print(f"Initial state shape: {np.array(obs).shape}")
+
+    state_dim = np.array(obs, dtype=np.float32).flatten().shape[0]
+
+    # For debugging
+    print(f"State dimension after flattening: {state_dim}")
+
+    # Check if action space is discrete or continuous
+    if hasattr(train_env.action_space, 'shape') and len(train_env.action_space.shape) > 0:
+        action_dim = train_env.action_space.shape[0]
+        max_action = float(train_env.action_space.high[0])
+        print(f"Continuous action space with dimension: {action_dim}")
+    else:
+        action_dim = 1  # For CartPole and other discrete envs, use 1 for action dimension
+        max_action = 1.0
+        print(f"Discrete action space with {train_env.action_space.n} actions, using action_dim=1")
+
     print(f"Environment: {args.env}")
     print(f"State dimension: {state_dim}")
     print(f"Action dimension: {action_dim}")
     print(f"Max action: {max_action}")
-
+    
+    # Create a test sample to verify dimensions
+    test_state = np.array(obs, dtype=np.float32).flatten()
+    test_action = np.random.uniform(-max_action, max_action, size=action_dim)
+    print(f"Test state shape: {test_state.shape}")
+    print(f"Test action shape: {test_action.shape}")
+    print(f"Combined input dim for critic: {test_state.shape[0] + test_action.shape[0]}")
+    
     # Create directories if they don't exist
     os.makedirs(args.log_dir, exist_ok=True)
     os.makedirs(args.save_dir, exist_ok=True)
 
     # Initialize agent
+# Initialize agent with verified dimensions
     agent = TD3Agent(
         state_dim=state_dim,
         action_dim=action_dim,
@@ -184,7 +203,7 @@ def train(args):
         critic_lr=args.critic_lr,
         expl_noise=args.expl_noise
     )
-    
+        
     # Training metrics
     episode_rewards = []
     avg_rewards = []
@@ -211,13 +230,18 @@ def train(args):
     for t in range(args.total_timesteps):
         episode_timesteps += 1
         
-        # Select action with exploration noise
+        # In the training loop, around line 225:
         if t < args.start_timesteps:
             # Random exploration at the beginning
             action = train_env.action_space.sample()
         else:
             action = agent.select_action(state)
-        
+
+        # Check if we need special handling for CartPole
+        if train_env.env_name == 'CartPole-v1' and isinstance(action, np.ndarray):
+            # Convert to scalar action for CartPole
+            action = int(action[0] > 0)  # Threshold at 0: negative → 0, positive → 1     
+               
         # Take step in environment
         next_state, reward, terminated, truncated, _ = train_env.step(action)
         done = terminated or truncated

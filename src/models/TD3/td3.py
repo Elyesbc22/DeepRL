@@ -111,6 +111,14 @@ class Critic(nn.Module):
         Returns:
             Q1 and Q2 value estimates
         """
+        # Ensure state has right shape
+        if state.dim() == 1:
+            state = state.unsqueeze(0)
+        
+        # Ensure action has right shape
+        if action.dim() == 1:
+            action = action.unsqueeze(0)
+        
         # Concatenate state and action
         sa = torch.cat([state, action], dim=1)
         
@@ -128,6 +136,23 @@ class Critic(nn.Module):
         Returns:
             Q1 value estimate
         """
+        # Ensure state has right shape
+        if state.dim() == 1:
+            state = state.unsqueeze(0)
+        
+        # Ensure action has right shape
+        if action.dim() == 1:
+            action = action.unsqueeze(0)
+        
+        # Make sure batch dimensions match
+        if state.size(0) != action.size(0):
+            if action.size(0) == 1:
+                action = action.expand(state.size(0), -1)
+            elif state.size(0) == 1:
+                state = state.expand(action.size(0), -1)
+            else:
+                raise ValueError(f"Cannot reconcile batch sizes: state={state.size(0)}, action={action.size(0)}")
+        
         sa = torch.cat([state, action], dim=1)
         return self.q1(sa)
 
@@ -186,12 +211,16 @@ class ReplayBuffer:
             next_states.append(np.array(s_, dtype=np.float32))
             dones.append(np.array(d, dtype=np.float32))
         
+        actions = np.array(actions, dtype=np.float32)
+        if actions.ndim == 1:           # (batch_size,)  → (batch_size,1)
+            actions = actions.reshape(-1, 1)
+
         return (
-            np.array(states),
-            np.array(actions),
-            np.array(rewards).reshape(-1, 1),
-            np.array(next_states),
-            np.array(dones).reshape(-1, 1)
+            np.array(states,  dtype=np.float32),
+            actions,
+            np.array(rewards, dtype=np.float32).reshape(-1, 1),
+            np.array(next_states, dtype=np.float32),
+            np.array(dones,   dtype=np.float32).reshape(-1, 1)
         )
     
     def __len__(self) -> int:
@@ -305,21 +334,25 @@ class TD3Agent:
         # Sample from replay buffer
         states, actions, rewards, next_states, dones = self.replay_buffer.sample(self.batch_size)
         
+        actions = torch.FloatTensor(actions).to(self.device)
+        if actions.dim() == 1:          # (batch_size,)  → (batch_size,1)
+            actions = actions.unsqueeze(1)
+        
         # Convert to tensors
         states = torch.FloatTensor(states).to(self.device)
-        actions = torch.FloatTensor(actions).to(self.device)
         rewards = torch.FloatTensor(rewards).to(self.device)
         next_states = torch.FloatTensor(next_states).to(self.device)
         dones = torch.FloatTensor(dones).to(self.device)
         
-        # Select next actions with noise for smoothing
-        noise = (
-            torch.randn_like(actions) * self.policy_noise
-        ).clamp(-self.noise_clip, self.noise_clip)
+        # Get next actions from target policy
+        next_actions = self.actor_target(next_states)
         
-        next_actions = (
-            self.actor_target(next_states) + noise
-        ).clamp(-self.max_action, self.max_action)
+        # Generate noise with proper shape [batch_size, action_dim]
+        noise = torch.randn_like(next_actions) * self.policy_noise
+        noise = noise.clamp(-self.noise_clip, self.noise_clip)
+        
+        # Apply noise to next actions
+        next_actions = (next_actions + noise).clamp(-self.max_action, self.max_action)
         
         # Get target Q values
         target_q1, target_q2 = self.critic_target(next_states, next_actions)
@@ -359,8 +392,8 @@ class TD3Agent:
         return {
             "critic_loss": critic_loss.item(),
             "actor_loss": actor_loss.item() if isinstance(actor_loss, torch.Tensor) else 0
-        }
-    
+        }   
+ 
     def train(self, env: Environment, episodes: int, max_steps: int = 1000) -> Dict[str, float]:
         """
         Train the agent for a given number of episodes.
