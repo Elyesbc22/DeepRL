@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH --job-name=hyperparam_RL
+#SBATCH --job-name=hyperparam_DQN_RL
 #SBATCH --output=logs/%j.out
 #SBATCH --error=logs/%j.err
-#SBATCH --time=01:00:00
+#SBATCH --time=02:00:00
 #SBATCH --gpus=1
-#SBATCH --cpus-per-task=1
-#SBATCH --mem=2G
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=8G
 
 # Load any necessary modules
 module load gcc python openmpi py-torch 
