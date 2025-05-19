@@ -13,7 +13,7 @@ import copy
 
 def parse_args():
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description="Hyperparameter search for PPO")
+    parser = argparse.ArgumentParser(description="Hyperparameter search for td3")
 
     parser.add_argument("--env", type=str, default="CartPole-v1", 
                         help="Environment name")
@@ -44,24 +44,25 @@ def parse_args():
 
 def define_search_space() -> Dict[str, List[Any]]:
     """
-    Define the hyperparameter search space for PPO.
+    Define the hyperparameter search space for td3.
 
     Returns:
         Dictionary mapping hyperparameter names to lists of possible values
     """
     search_space = {
-        "learning_rate": [1e-4, 3e-4, 1e-3],
-        "gamma": [0.9, 0.99, 0.999],
-        "gae_lambda": [0.9, 0.95, 0.99],
-        "clip_ratio": [0.1, 0.2, 0.3],
-        "value_coef": [0.25, 0.5, 1.0],
-        "entropy_coef": [0.001, 0.01, 0.05],
-        "steps_per_update": [1024, 2048, 4096],
-        "epochs_per_update": [5, 10, 15],
-        "hidden_dim": [64, 128, 256],
-        "batch_size": [32, 64, 128]
-    }
-
+    "actor_lr": [1e-4, 3e-4, 1e-3],
+    "critic_lr": [1e-4, 3e-4, 1e-3],
+    "gamma": [0.95, 0.99, 0.995],
+    "tau": [0.001, 0.005, 0.01],
+    "policy_noise": [0.1, 0.2, 0.3],
+    "noise_clip": [0.3, 0.5, 0.7],
+    "policy_freq": [1, 2, 4],
+    "expl_noise": [0.05, 0.1, 0.2],
+    "buffer_size": [500000, 1000000],
+    "start_timesteps": [10000, 25000, 50000],
+    "hidden_dim": [128, 256, 512],
+    "batch_size": [64, 100, 256]
+}
     return search_space
 
 def grid_search(search_space: Dict[str, List[Any]]) -> List[Dict[str, Any]]:
@@ -125,32 +126,32 @@ def run_training(config: Dict[str, Any], args: argparse.Namespace, run_id: str) 
     save_dir = os.path.join(args.save_dir, run_id)
     os.makedirs(save_dir, exist_ok=True)
 
-    # Build command
     cmd = [
-        "python", "src/models/PPO/train.py",
+        "python", "src/models/TD3/train.py",
         "--env", args.env,
         "--seed", str(args.seed),
         "--total_timesteps", str(args.total_timesteps),
-        "--learning_rate", str(config["learning_rate"]),
+        "--actor_lr", str(config["actor_lr"]),
+        "--critic_lr", str(config["critic_lr"]),
         "--gamma", str(config["gamma"]),
-        "--gae_lambda", str(config["gae_lambda"]),
-        "--clip_ratio", str(config["clip_ratio"]),
-        "--value_coef", str(config["value_coef"]),
-        "--entropy_coef", str(config["entropy_coef"]),
-        "--steps_per_update", str(config["steps_per_update"]),
-        "--epochs_per_update", str(config["epochs_per_update"]),
+        "--tau", str(config["tau"]),
+        "--policy_noise", str(config["policy_noise"]),
+        "--noise_clip", str(config["noise_clip"]),
+        "--policy_freq", str(config["policy_freq"]),
+        "--expl_noise", str(config["expl_noise"]),
+        "--buffer_size", str(config["buffer_size"]),
+        "--start_timesteps", str(config["start_timesteps"]),
         "--hidden_dim", str(config["hidden_dim"]),
         "--batch_size", str(config["batch_size"]),
         "--log_dir", run_dir,
         "--save_dir", save_dir
     ]
-
     # Run command
     print(f"Running training with configuration: {config}")
     subprocess.run(cmd, check=True)
 
     # Return path to metrics file
-    return os.path.join(run_dir, f"ppo_{args.env}_metrics.json")
+    return os.path.join(run_dir, f"td3_{args.env}_metrics.json")
 
 def load_metrics(metrics_path: str) -> Dict[str, Any]:
     """
@@ -211,7 +212,7 @@ def compare_configurations(results: List[Tuple[Dict[str, Any], float]], args: ar
         print()
 
     # Save results to file
-    results_path = os.path.join(args.output_dir, f"ppo_hyperparam_search_results_{args.env}.json")
+    results_path = os.path.join(args.output_dir, f"td3_hyperparam_search_results_{args.env}.json")
     with open(results_path, "w") as f:
         json.dump({
             "results": [{"config": config, "score": score} for config, score in results],
@@ -225,13 +226,13 @@ def compare_configurations(results: List[Tuple[Dict[str, Any], float]], args: ar
     # Plot scores
     scores = [score for _, score in results]
     plt.bar(range(len(scores)), scores)
-    plt.title(f"PPO Hyperparameter Search Results ({args.env})")
+    plt.title(f"td3 Hyperparameter Search Results ({args.env})")
     plt.xlabel("Configuration Rank")
     plt.ylabel("Score")
     plt.xticks(range(len(scores)), [f"Config {i+1}" for i in range(len(scores))])
 
     plt.tight_layout()
-    plt.savefig(os.path.join(args.output_dir, f"ppo_hyperparam_search_results_{args.env}.png"))
+    plt.savefig(os.path.join(args.output_dir, f"td3_hyperparam_search_results_{args.env}.png"))
     plt.close()
 
     # Create a table of the top 5 configurations
@@ -254,8 +255,8 @@ def compare_configurations(results: List[Tuple[Dict[str, Any], float]], args: ar
     table.set_fontsize(9)
     table.scale(1, 1.5)
     
-    plt.title(f"Top {top_n} PPO Configurations for {args.env}")
-    plt.savefig(os.path.join(args.output_dir, f"ppo_top_configs_{args.env}.png"), bbox_inches='tight')
+    plt.title(f"Top {top_n} td3 Configurations for {args.env}")
+    plt.savefig(os.path.join(args.output_dir, f"td3_top_configs_{args.env}.png"), bbox_inches='tight')
     plt.close()
 
 def bayesian_search(search_space: Dict[str, List[Any]], num_trials: int, 

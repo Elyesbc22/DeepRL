@@ -1,0 +1,119 @@
+{
+  "results": [
+    {
+      "config": {
+        "learning_rate": 0.001,
+        "gamma": 0.99,
+        "epsilon_decay": 0.99,
+        "epsilon_decay_type": "linear",
+        "hidden_dim": 128,
+        "batch_size": 64,
+        "buffer_size": 20000,
+        "target_update_freq": 20
+      },
+      "score": 420.21999999999997
+    },
+    {
+      "config": {
+        "learning_rate": 0.0001,
+        "gamma": 0.9,
+        "epsilon_decay": 0.99,
+        "epsilon_decay_type": "exponential",
+        "hidden_dim": 64,
+        "batch_size": 32,
+        "buffer_size": 10000,
+        "target_update_freq": 10
+      },
+      "score": 354.7900000000001
+    },
+    {
+      "config": {
+        "learning_rate": 0.0001,
+        "gamma": 0.9,
+        "epsilon_decay": 0.99,
+        "epsilon_decay_type": "exponential",
+        "hidden_dim": 64,
+        "batch_size": 128,
+        "buffer_size": 20000,
+        "target_update_freq": 20
+      },
+      "score": 266.41
+    },
+    {
+      "config": {
+        "learning_rate": 0.0001,
+        "gamma": 0.9,
+        "epsilon_decay": 0.99,
+        "epsilon_decay_type": "exponential",
+        "hidden_dim": 64,
+        "batch_size": 32,
+        "buffer_size": 5000,
+        "target_update_freq": 5
+      },
+      "score": 266.1
+    },
+    {
+      "config": {
+        "learning_rate": 0.005,
+        "gamma": 0.95,
+        "epsilon_decay": 0.999,
+        "epsilon_decay_type": "exponential",
+        "hidden_dim": 256,
+        "batch_size": 32,
+        "buffer_size": 10000,
+        "target_update_freq": 5
+      },
+      "score": 260.63
+    },
+    {
+      "config": {
+        "learning_rate": 0.0001,
+        "gamma": 0.9,
+        "epsilon_decay": 0.99,
+        "epsilon_decay_type": "exponential",
+        "hidden_dim": 64,
+        "batch_size": 32,
+        "buffer_size": 10000,
+        "target_update_freq": 20
+      },
+      "score": 249.71999999999997
+    },
+    {
+      "config": {
+        "learning_rate": 0.0005,
+        "gamma": 0.9,
+        "epsilon_decay": 0.995,
+        "epsilon_decay_type": "linear",
+        "hidden_dim": 256,
+        "batch_size": 128,
+        "buffer_size": 5000,
+        "target_update_freq": 5
+      },
+      "score": 197.16000000000003
+    },
+    {
+      "config": {
+        "learning_rate": 0.0001,
+        "gamma": 0.9,
+        "epsilon_decay": 0.99,
+        "epsilon_decay_type": "exponential",
+        "hidden_dim": 64,
+        "batch_size": 32,
+        "buffer_size": 5000,
+        "target_update_freq": 10
+      },
+      "score": 181.84
+    }
+  ],
+  "best_config": {
+    "learning_rate": 0.001,
+    "gamma": 0.99,
+    "epsilon_decay": 0.99,
+    "epsilon_decay_type": "linear",
+    "hidden_dim": 128,
+    "batch_size": 64,
+    "buffer_size": 20000,
+    "target_update_freq": 20
+  },
+  "best_score": 420.21999999999997
+}
