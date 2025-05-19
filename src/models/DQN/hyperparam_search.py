@@ -15,6 +15,10 @@ def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="Hyperparameter search for DQN")
 
+    parser.add_argument("--path", type=str, default="src/models/DQN/train.py", 
+                        help="Path to the python training file")
+
+
     parser.add_argument("--env", type=str, default="CartPole-v1", 
                         help="Environment name")
     parser.add_argument("--seed", type=int, default=0, 
@@ -125,7 +129,7 @@ def run_training(config: Dict[str, Any], args: argparse.Namespace, run_id: str) 
 
     # Build command
     cmd = [
-        "python", "train.py",
+        "python", args.path,
         "--env", args.env,
         "--seed", str(args.seed),
         "--total_timesteps", str(args.total_timesteps),

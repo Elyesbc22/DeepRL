@@ -285,12 +285,13 @@ def train(args):
             episode_num += 1
             
             # Update progress bar
-            progress_bar.update(1)
             progress_bar.set_postfix({
                 "episode": episode_num,
                 "reward": episode_rewards[-1],
                 "avg_reward": avg_reward
             })
+        
+        progress_bar.update(1)
         
         # Evaluate agent
         if (t + 1) % args.eval_freq == 0:
@@ -312,6 +313,8 @@ def train(args):
             
             with open(os.path.join(args.log_dir, f"td3_{args.env}_metrics.json"), "w") as f:
                 json.dump(metrics, f)
+                
+            
     
     # Final evaluation
     eval_reward = evaluate_agent(agent, eval_env, args.eval_episodes)
