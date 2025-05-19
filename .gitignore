@@ -10,3 +10,4 @@ saved_models/*
 src/visualizations/*
 **/logs/
 **/saved_models/*
+.venv/
