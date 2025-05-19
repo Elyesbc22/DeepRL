@@ -4,3 +4,9 @@ src/saved_models/*
 **/__pycache__
 **/**.pyc
 src/logs
+logs/*
+plots/*
+saved_models/*
+src/visualizations/*
+**/logs/
+**/saved_models/*
