@@ -15,6 +15,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from src.env.environment import Environment
 from src.env.wrappers import DiscretizedActionWrapper
 from dqn import DQNAgent
+from best_hyperparams import get_best_hyperparams
 
 def parse_args():
     """Parse command line arguments."""
@@ -251,10 +252,16 @@ def visualize_all_environments(args):
         else:
             env = Environment(env_name, render_mode="rgb_array", seed=args.seed)
 
-        # Create agent
+        # Get best hyperparameters for this environment
+        hyperparams = get_best_hyperparams(env_name)
+
+        # Create agent with the correct hidden dimension if available
+        hidden_dim = hyperparams.get('hidden_dim', 128) if hyperparams else 128
+        print(f"Using hidden_dim={hidden_dim} for {env_name}")
         agent = DQNAgent(
             state_dim=env.state_dim,
-            action_dim=env.action_dim
+            action_dim=env.action_dim,
+            hidden_dim=hidden_dim
         )
 
         # Visualize each selected model
