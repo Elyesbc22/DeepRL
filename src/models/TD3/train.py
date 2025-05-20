@@ -290,7 +290,6 @@ def train(args):
                 "reward": episode_rewards[-1],
                 "avg_reward": avg_reward
             })
-        
         progress_bar.update(1)
         
         # Evaluate agent
@@ -313,8 +312,6 @@ def train(args):
             
             with open(os.path.join(args.log_dir, f"td3_{args.env}_metrics.json"), "w") as f:
                 json.dump(metrics, f)
-                
-            
     
     # Final evaluation
     eval_reward = evaluate_agent(agent, eval_env, args.eval_episodes)
@@ -330,7 +327,7 @@ def train(args):
         "eval_rewards": eval_rewards,
         "critic_losses": critic_losses,
         "actor_losses": actor_losses,
-        "timesteps": list(range(0, args.total_timesteps, args.eval_freq)) + [args.total_timesteps]
+        "timesteps": list(range(0, args.total_timesteps+1, args.eval_freq))
     }
     
     with open(os.path.join(args.log_dir, f"td3_{args.env}_metrics.json"), "w") as f:
@@ -364,6 +361,7 @@ if __name__ == "__main__":
 
     plt.subplot(2, 2, 2)
     plt.plot(metrics["timesteps"], metrics["eval_rewards"])
+    print(metrics['timesteps'], metrics['eval_rewards'])
     plt.title("Evaluation Rewards")
     plt.xlabel("Timesteps")
     plt.ylabel("Reward")
