@@ -34,7 +34,7 @@ if [ -n "$(ls -A "${SAVE_DIR}" 2>/dev/null)" ]; then
 fi
 
 # Run the training script
-python "src/models/${MODEL,,}/train.py" \
+python "src/models/${MODEL}/train.py" \
   --env "${ENV}" \
   --seed "${SEED}" \
   --total_timesteps "${TOTAL_TIMESTEPS}" \
