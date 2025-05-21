@@ -1,0 +1,16 @@
+{
+  "CartPole-v1": {
+    "actor_lr": 0.0003,
+    "critic_lr": 0.0003,
+    "gamma": 0.95,
+    "tau": 0.005,
+    "policy_noise": 0.3,
+    "noise_clip": 0.5,
+    "policy_freq": 2,
+    "expl_noise": 0.1,
+    "buffer_size": 1000000,
+    "start_timesteps": 25000,
+    "hidden_dim": 512,
+    "batch_size": 64
+  }
+}

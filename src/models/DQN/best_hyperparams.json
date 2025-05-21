@@ -1,17 +1,13 @@
 {
   "CartPole-v1": {
-    "hidden_dim": 128,
-    "learning_rate": 0.001,
+    "learning_rate": 0.0001,
     "gamma": 0.99,
-    "epsilon_start": 1.0,
-    "epsilon_end": 0.01,
     "epsilon_decay": 0.995,
-    "buffer_size": 10000,
+    "epsilon_decay_type": "linear",
+    "hidden_dim": 256,
     "batch_size": 64,
-    "target_update_freq": 10,
-    "reward_shaping": false,
-    "velocity_coefficient": 2,
-    "eval_reward": 500.0
+    "buffer_size": 5000,
+    "target_update_freq": 20
   },
   "MountainCar-v0": {
     "hidden_dim": 128,

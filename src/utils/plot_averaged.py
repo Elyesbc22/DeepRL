@@ -149,11 +149,11 @@ def plot_averaged_metrics(stats: Dict[str, np.ndarray], env: str, alg: str, outp
     """
     os.makedirs(output_dir, exist_ok=True)
     
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(8, 6))
     
-    # Plot training rewards
-    plt.subplot(1, 2, 1)
-    plt.plot(stats["x_train"], stats["train_mean"], label="Mean", color="blue")
+    x_eval = np.linspace(0, stats["x_train"][-1], len(stats["x_eval"]))
+    
+    plt.plot(stats["x_train"], stats["train_mean"], label="Train rewards", color="blue")
     plt.fill_between(
         stats["x_train"],
         stats["train_mean"] - stats["train_std"],
@@ -161,28 +161,24 @@ def plot_averaged_metrics(stats: Dict[str, np.ndarray], env: str, alg: str, outp
         alpha=0.3,
         color="blue",
     )
-    plt.title("Training Rewards",fontsize=20)
+    plt.title("Train",fontsize=20)
     plt.xlabel("Episode",fontsize=20)
     plt.ylabel("Reward",fontsize=20)
-    plt.yticks(fontsize=17)
-    plt.xticks(fontsize=17)
     
-    # Plot evaluation rewards
-    plt.subplot(1, 2, 2)
-    plt.plot(stats["x_eval"], stats["eval_mean"], label="Mean", color="green")
+    plt.plot(x_eval, stats["eval_mean"], label="Evaluation rewards", color="green")
     plt.fill_between(
-        stats["x_eval"],
+        x_eval,
         stats["eval_mean"] - stats["eval_std"],
         stats["eval_mean"] + stats["eval_std"],
         alpha=0.3,
         color="green",
     )
-    plt.title("Evaluation Rewards",fontsize=20)
+    plt.title("Eval",fontsize=20)
     plt.xlabel("Evaluation",fontsize=20)
     plt.ylabel("Reward",fontsize=20)
     plt.yticks(fontsize=17)
     plt.xticks(fontsize=17)
-    plt.legend()
+    plt.legend(fontsize=17)
     
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, f"{alg}_{env}_averaged_results.png"))
