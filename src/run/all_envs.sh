@@ -30,7 +30,7 @@ for MODEL in "${!MODEL_TIMESTEPS[@]}"; do
     echo "Submitting ${MODEL} job with seed ${SEED}"
     
     # Submit the job to Slurm
-    sbatch run_training.sh "${MODEL}" "${SEED}" "${ENV}" "${MODEL_TIMESTEPS[$MODEL]}" "${LOG_DIR}" "${SAVE_DIR}"
+    sbatch src/run/run_single.sh "${MODEL}" "${SEED}" "${ENV}" "${MODEL_TIMESTEPS[$MODEL]}" "${LOG_DIR}" "${SAVE_DIR}"
   done
 done
 
