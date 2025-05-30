@@ -280,3 +280,30 @@ class DQNAgent:
         self.optimizer.load_state_dict(checkpoint['optimizer'])
         self.epsilon = checkpoint['epsilon']
         self.steps = checkpoint['steps']
+
+    def state_dict(self):
+        """
+        Get the state dictionary of the agent.
+
+        Returns:
+            Dictionary containing the state dictionaries of the q_network and target_network
+        """
+        return {
+            'q_network': self.q_network.state_dict(),
+            'target_network': self.target_network.state_dict()
+        }
+
+    def load_state_dict(self, state_dict):
+        """
+        Load the state dictionary into the agent.
+
+        Args:
+            state_dict: Dictionary containing the state dictionaries of the q_network and target_network
+        """
+        if 'q_network' in state_dict:
+            self.q_network.load_state_dict(state_dict['q_network'])
+            self.target_network.load_state_dict(state_dict['target_network'])
+        else:
+            # For backward compatibility with older checkpoints that might have a different format
+            self.q_network.load_state_dict(state_dict)
+            self.target_network.load_state_dict(state_dict)
